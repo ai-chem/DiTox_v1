@@ -1,5 +1,5 @@
-from sklearn.ensemble import ExtraTreesRegressor
-from sklearn.metrics import r2_score
+from xgboost import XGBRegressor
+from sklearn.metrics import r2_score, mean_squared_error
 from sklearn.model_selection import train_test_split, KFold
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 import pandas as pd
@@ -11,12 +11,12 @@ path_to_data = "https://raw.githubusercontent.com/djzhendogg/predicting-toxicity
 
 dataset = pd.read_csv(path_to_data)
 
-dataset.drop("Unnamed: 0", axis=1, inplace=True)
-dataset.drop("Material", axis=1, inplace=True)
+dataset.drop(["Unnamed: 0", "Material", "Elements"], axis=1, inplace=True)
+
 
 all_features = set(dataset.columns)
 categ_features = {"Cell_type", "Coat", "Line_Primary_Cell", "Animal", "Cell_morphology", "Cell_age",
-                  "Cell_organ", "Test", "Test_indicator", "Elements"}
+                  "Cell_organ", "Test", "Test_indicator"}
 
 for feature in categ_features:
     dataset[feature] = dataset[feature].astype("category").cat.codes
@@ -53,12 +53,6 @@ fig3 = plt.figure(figsize=(10, 6), constrained_layout=True)
 sns.violinplot(data=dataset["Viability (%)"], orient="h")
 plt.title("Violin plot for viability without outlier data")
 # plt.show()
-
-# generate a new feature
-support_feature = (dataset["Concentration (g/L)"] + dataset["Zeta potential (mV)"]) / (max(dataset["Concentration (g/L)"].max(), dataset["Zeta potential (mV)"].max()) \
-                                                             - min(dataset["Concentration (g/L)"].min(), dataset["Zeta potential (mV)"].min()))
-support_feature_series = pd.Series(support_feature, index=dataset.index, name="Generated_feature")
-dataset = dataset.merge(support_feature_series, right_index=True, left_index=True)
 
 # split the features and the target
 label = {"Viability (%)"}
@@ -104,7 +98,7 @@ x_test = pd.DataFrame(test_num_features, columns=test_numerical_features.columns
 x_test = x_test.merge(X_test[categ_features], right_index=True, left_index=True)
 
 # assign and learn the model
-regressor = ExtraTreesRegressor()
+regressor = XGBRegressor()
 regressor.fit(x_train, Y_train)
 # estimate the model on the test data
 prediction = regressor.predict(x_test)
@@ -119,17 +113,20 @@ indices = np.argsort(importance)
 feature_dict = {key: value for key, value in zip(features, importance)}
 feature_dictionary = pd.DataFrame(zip(features, importance * 100), columns=["Feature ID", "Importance"])
 feature_dictionary.to_excel("random_forest_feature_importance.xlsx")
-plt.title("ExtraTreesRegressor feature importance")
-plt.barh(range(len(indices)), importance[indices], color="#8f63f4", align="center")
-plt.yticks(range(len(indices)), features[indices])
-plt.xlabel("Relative Importance")
+feature_dictionary.sort_values(by="Importance", ascending=False, inplace=True)
+plt.title("XGBRegressor feature importance")
+sns.barplot(feature_dictionary, x="Importance", y="Feature ID")
 
 
 # 10-fold cross-validation
 kf = KFold(n_splits=10, random_state=random_state, shuffle=True)
 kf.get_n_splits(X)
-train_metric_results = []
-test_metric_results = []
+
+train_R2_metric_results = []
+train_rmse_metric_results = []
+test_R2_metric_results = []
+test_rmse_metric_results = []
+
 for train_index, test_index in kf.split(X):
     # print("Train indexes: ", train_index, "Test indexes: ", test_index)
     X_train, X_test = X.iloc[train_index], X.iloc[test_index]
@@ -149,20 +146,21 @@ for train_index, test_index in kf.split(X):
     x_test = pd.DataFrame(test_num_features, columns=test_numerical_features.columns, index=X_test.index)
     x_test = x_test.merge(X_test[categ_features], right_index=True, left_index=True)
 
-    new_regressor = ExtraTreesRegressor()
+    new_regressor = XGBRegressor()
     new_regressor.fit(x_train, y_train)
     train_pred = new_regressor.predict(x_train)
     test_pred = new_regressor.predict(x_test)
-    train_r_2_metr = r2_score(y_train, train_pred)
-    test_r_2_metr = r2_score(y_test, test_pred)
-    train_metric_results.append(train_r_2_metr)
-    test_metric_results.append(test_r_2_metr)
+    train_R2_metric_results.append(r2_score(y_train, train_pred))
+    train_rmse_metric_results.append(mean_squared_error(y_train, train_pred))
+    test_R2_metric_results.append(r2_score(y_test, test_pred))
+    test_rmse_metric_results.append(mean_squared_error(y_test, test_pred))
 
 # visualize the information about the model
 fig5 = plt.figure()
 sns.scatterplot(x=Y_test, y=prediction)
-plt.title("Visualization of ExtraTreesRegressor prediction on test data")
+plt.title("Visualization of XGBRegressor prediction on test data")
 plt.show()
 
 print("leave-one-out cross-validation result (R2-score): ", r2_score(Y_test, prediction))
-print("10-fold cross-validation result (R2-score): ", np.mean(test_metric_results))
+print("10-fold cross-validation result (R2-score): ", np.mean(test_R2_metric_results))
+print("10-fold cross-validation result (RMSE): ", np.mean(test_rmse_metric_results))
