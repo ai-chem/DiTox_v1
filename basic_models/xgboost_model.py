@@ -161,6 +161,6 @@ sns.scatterplot(x=Y_test, y=prediction)
 plt.title("Visualization of XGBRegressor prediction on test data")
 plt.show()
 
-print("leave-one-out cross-validation result (R2-score): ", r2_score(Y_test, prediction))
-print("10-fold cross-validation result (R2-score): ", np.mean(test_R2_metric_results))
+print("leave-one-out cross-validation result (R-squared): ", r2_score(Y_test, prediction))
+print("10-fold cross-validation result (R-squared): ", np.mean(test_R2_metric_results))
 print("10-fold cross-validation result (RMSE): ", np.mean(test_rmse_metric_results))

@@ -156,6 +156,6 @@ sns.scatterplot(x=Y_test, y=prediction)
 plt.title("Visualization of CatBoostRegressor prediction on test data")
 plt.show()
 
-print("leave-one-out cross-validation result (R2-score): ", regressor.score(test_pool))
-print("10-fold cross-validation result (R2-score): ", np.mean(test_R2_metric_results))
+print("leave-one-out cross-validation result (R-squared): ", regressor.score(test_pool))
+print("10-fold cross-validation result (R-squared): ", np.mean(test_R2_metric_results))
 print("10-fold cross-validation result (RMSE): ", np.mean(test_rmse_metric_results))
