@@ -21,8 +21,10 @@ for feature in categ_features:
 
 ds_array = dataset.to_numpy()
 
+x = dataset.drop('Viability (%)', axis=1)
+
 kmeans = KMeans(n_clusters=2)
-kmeans.fit(dataset)
+kmeans.fit(x)
 labels = kmeans.labels_
 label_ser = pd.Series(labels, index=dataset.index, name='knn_label')
 # dataset = dataset.merge(label_ser, right_index=True, left_index=True)
@@ -67,14 +69,16 @@ for number in range(len(quantile_values)):
 
 split_ds.rename(columns={"Viability (%)": "Viability quantiles"}, inplace=True)
 
-tsne = TSNE(perplexity=40)
-dec_ds = tsne.fit_transform(dataset)
+tsne = TSNE(perplexity=35, learning_rate='auto')
+
+
+dec_ds = tsne.fit_transform(x)
 dec_ds = pd.DataFrame(dec_ds, columns=['component_1', 'component_2'])
 
-color_palt = sns.color_palette(n_colors=len(ds['Material'].unique()))
+# color_palt = sns.color_palette(['bright', 'dark', 'muted'], n_colors=len(ds['Material'].unique()))
 
-fig_tsne_0= plt.figure()
-sns.scatterplot(x=dec_ds['component_1'], y=dec_ds['component_2'], hue=ds['Material'], palette=color_palt)
+
+sns.scatterplot(x=dec_ds['component_1'], y=dec_ds['component_2'], hue=ds['Material'], palette='tab20b_r')
 
 fig_tsne_1= plt.figure()
 sns.scatterplot(x=dec_ds['component_1'], y=dec_ds['component_2'], hue=support_ds['Coat'], palette='bright')
