@@ -24,7 +24,6 @@ for feature in categ_features:
 print(dataset.describe())
 # print(Y.describe())
 
-out_index = dataset[dataset["Viability (%)"] == dataset["Viability (%)"].max()].index
 dataset.drop(dataset[dataset["Viability (%)"] > 200].index, inplace=True)
 
 # split the features and the target
@@ -95,13 +94,16 @@ print("Regressor R2-score: ", r2_score(Y_test, prediction))
 importance = regressor.feature_importances_
 features = regressor.feature_name_
 
+sum_imp = sum(importance)
+weighted_importance = [value / sum_imp for value in importance]
+
 fig4 = plt.figure(constrained_layout=True)
-indices = np.argsort(importance)
-feature_dict = {key: value for key, value in zip(features, importance)}
-feature_dictionary = pd.DataFrame(zip(features, importance * 100), columns=["Feature ID", "Importance"])
+indices = np.argsort(weighted_importance)
+feature_dict = {key: value for key, value in zip(features, weighted_importance)}
+feature_dictionary = pd.DataFrame(zip(features, weighted_importance * 100), columns=["Feature ID", "Importance"])
 feature_dictionary.sort_values(by="Importance", ascending=False, inplace=True)
 plt.title("LGBMRegressor feature importance")
-sns.barplot(feature_dictionary, x="Importance", y="Feature ID")
+sns.barplot(x=feature_dictionary["Importance"], y=feature_dictionary["Feature ID"])
 
 # 10-fold cross-validation
 kf = KFold(n_splits=10, random_state=random_state, shuffle=True)

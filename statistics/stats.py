@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 import scipy.cluster.hierarchy as sch
 from sklearn.cluster import KMeans
 from sklearn.manifold import TSNE
+import plotly.express as ex
+
 
 path = "https://raw.githubusercontent.com/djzhendogg/predicting-toxicity-of-nanomaterials/master/last_df_3090.csv"
 ds = pd.read_csv(path)
@@ -20,6 +22,16 @@ for feature in categ_features:
     dataset[feature] = dataset[feature].astype('category').cat.codes
 
 ds_array = dataset.to_numpy()
+
+material_stat = ds['Material'].describe()
+material_dict = dict()
+
+for key in ds['Material'].unique():
+    sup = len(ds[ds['Material'] == key].index)
+    material_dict[key] = sup
+
+pie_mat = ex.pie(values=material_dict.values(), names=material_dict.keys())
+pie_mat.show()
 
 x = dataset.drop('Viability (%)', axis=1)
 
@@ -75,7 +87,7 @@ tsne = TSNE(perplexity=35, learning_rate='auto')
 dec_ds = tsne.fit_transform(x)
 dec_ds = pd.DataFrame(dec_ds, columns=['component_1', 'component_2'])
 
-# color_palt = sns.color_palette(['bright', 'dark', 'muted'], n_colors=len(ds['Material'].unique()))
+color_palt = sns.color_palette('tab20b_r')
 
 
 sns.scatterplot(x=dec_ds['component_1'], y=dec_ds['component_2'], hue=ds['Material'], palette='tab20b_r')
@@ -87,6 +99,35 @@ fig_tsne_2= plt.figure()
 sns.scatterplot(x=dec_ds['component_1'], y=dec_ds['component_2'], hue=split_ds['Viability quantiles'], palette='bright')
 
 plt.show()
+
+
+tsne_3d = TSNE(n_components=3, perplexity=40, learning_rate='auto')
+dec_3d = tsne_3d.fit_transform(x)
+dec_3d = pd.DataFrame(dec_3d, columns=['component_1', 'component_2', 'component_3'])
+
+fig_3d_mat_tsne = ex.scatter_3d(
+    dec_3d, x='component_1', y='component_2', z='component_3',
+    color=ds['Material'], labels={'color': 'Material'},
+    color_discrete_sequence=ex.colors.qualitative.Alphabet
+)
+
+fig_3d_mat_tsne.show()
+
+fig_3d_coat_tsne = ex.scatter_3d(
+    dec_3d, x='component_1', y='component_2', z='component_3',
+    color=support_ds['Coat'], labels={'color': 'Coat'},
+    # color_discrete_sequence=ex.colors.qualitative.Alphabet
+)
+
+fig_3d_coat_tsne.show()
+
+fig_3d_viab_tsne = ex.scatter_3d(
+    dec_3d, x='component_1', y='component_2', z='component_3',
+    color=split_ds['Viability quantiles'], labels={'color': 'Viability quantiles'},
+    # color_discrete_sequence=ex.colors.qualitative.Alphabet
+)
+
+fig_3d_viab_tsne.show()
 
 xticks = range(0, 3090, 400)
 
